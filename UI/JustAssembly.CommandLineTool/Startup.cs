@@ -2,7 +2,10 @@
 using JustAssembly.Core;
 using JustAssembly.Infrastructure.Analytics;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using CommandLine;
+using JustAssembly.CommandLineInterface;
 
 namespace JustAssembly.CommandLineTool
 {
@@ -34,34 +37,30 @@ namespace JustAssembly.CommandLineTool
 
         private static void RunMain(string[] args)
         {
-            if (args.Length != 3)
+            Options options = new Options();
+            try
             {
-                WriteErrorAndSetErrorCode("Wrong number of arguments." + Environment.NewLine + Environment.NewLine + "Sample:" + Environment.NewLine + "justassembly.commandlinetool Path\\To\\Assembly1 Path\\To\\Assembly2 Path\\To\\XMLOutput");
+                Parser.Default.ParseArguments(args, options);
+            }
+            catch (Exception e)
+            {
+                if (e.InnerException != null)
+                {
+                    WriteErrorAndSetErrorCode(e.InnerException.Message);
+                }
                 return;
             }
 
-            if (!FilePathValidater.ValidateInputFile(args[0]))
+            if (options.Help)
             {
-                WriteErrorAndSetErrorCode("First assembly path is in incorrect format or file not found.");
-                return;
-            }
-
-            if (!FilePathValidater.ValidateInputFile(args[1]))
-            {
-                WriteErrorAndSetErrorCode("Second assembly path is in incorrect format or file not found.");
-                return;
-            }
-
-            if (!FilePathValidater.ValidateOutputFile(args[2]))
-            {
-                WriteErrorAndSetErrorCode("Output file path is in incorrect format.");
+                Console.WriteLine(CommandLine.Text.HelpText.AutoBuild(options));
                 return;
             }
 
             string xml = string.Empty;
             try
             {
-                IDiffItem diffItem = APIDiffHelper.GetAPIDifferences(args[0], args[1]);
+                IDiffItem diffItem = APIDiffHelper.GetAPIDifferences(options.BaseAssemblyPath, options.ComparisonAssemblyPath);
                 if (diffItem != null)
                 {
                     xml = diffItem.ToXml();
@@ -75,7 +74,13 @@ namespace JustAssembly.CommandLineTool
 
             try
             {
-                using (StreamWriter writer = new StreamWriter(args[2]))
+                string outputFileName = Path.Combine(options.OutputPath, "results.xml");
+                if (!File.Exists(outputFileName))
+                {
+                    File.Create(outputFileName);
+                }
+
+                using (StreamWriter writer = new StreamWriter(outputFileName))
                 {
                     writer.Write(xml);
                 }
@@ -87,7 +92,7 @@ namespace JustAssembly.CommandLineTool
             }
 
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("API differences calculated successfully.");
+            Console.WriteLine($"API differences calculated successfully. Find output here: {options.OutputPath}");
             Console.ResetColor();
         }
 
@@ -104,7 +109,7 @@ namespace JustAssembly.CommandLineTool
         {
             analytics.TrackException(ex);
 
-            WriteErrorAndSetErrorCode(string.Format("{0}{1}{2}", message, Environment.NewLine, ex));
+            WriteErrorAndSetErrorCode($"{message}{Environment.NewLine}{ex}");
         }
     }
 }
