@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using CommandLine;
 
@@ -7,6 +8,8 @@ namespace JustAssembly.CommandLineInterface
     public class Options
     {
 
+
+        private static readonly List<string> ValidInputFileExtensions = new List<string>() { ".dll", ".exe" };
         private string baseAssemblyPath;
         private string comparisonAssemblyPath;
         private string outputPath;
@@ -20,7 +23,7 @@ namespace JustAssembly.CommandLineInterface
             get { return baseAssemblyPath; }
             set
             {
-                if (!File.Exists(value))
+                if (!File.Exists(value) && ValidInputFileExtensions.Contains(Path.GetExtension(value)))
                 {
                     throw new ArgumentException("The base assembly path parameter (-b, --basePath) does not contain a valid path.");
                 }
@@ -35,7 +38,7 @@ namespace JustAssembly.CommandLineInterface
             get { return comparisonAssemblyPath; }
             set
             {
-                if (!File.Exists(value))
+                if (!File.Exists(value) && ValidInputFileExtensions.Contains(Path.GetExtension(value)))
                 {
                     throw new ArgumentException("The comparison assembly path parameter (-c, --comparisonPath) does not contain a valid path.");
                 }
